@@ -4,7 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-requests = "*"
+orator = "*"
+requests = "==2.24.0"
+pandas = "*"
+numpy = "==1.19.3"
+mysqlclient = "*"
 
 [dev-packages]
 
