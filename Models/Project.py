@@ -14,8 +14,6 @@ class Project(Model):
     def client(self):
         return Client
 
-
-    #O que é essa activity? É um campo extra que é pago?
     @belongs_to_many("project_activity", "project_id", "activity_id")
     def activities(self):
         return Activity

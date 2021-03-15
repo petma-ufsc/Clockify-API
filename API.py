@@ -1,7 +1,5 @@
 """
-mudar formatação dos url's
-descbrir chave do perfil do PET
-resolver problema do github
+colocar chave do perfil do PET e o id do workspace
 """
 
 
