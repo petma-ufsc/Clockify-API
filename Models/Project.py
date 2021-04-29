@@ -6,13 +6,13 @@ import requests
 class Project(Model):
 
     __table__ = "project"
-    __fillable__ = ["clockify_id", "client_id", "name"]
+    __fillable__ = ["clockify_id", "category_id", "name"]
     __primary_key__ = "id"
     __incrementing__ = True
 
-    @belongs_to("client_id", "id")
-    def client(self):
-        return Client
+    @belongs_to("category_id", "id")
+    def category(self):
+        return Category
 
     @belongs_to_many("project_activity", "project_id", "activity_id")
     def activities(self):
@@ -35,12 +35,12 @@ class Project(Model):
            Use the parameter archived=0 to retrieve all active projects.
            Use the parameter archived=1 to retrieve all archived projects."""
         projects = cls.fetch_all_projects(archived)
-        clients_dict = Client.map_all_clients()
+        categories_dict = Category.map_all_categories()
         for project in projects:
             Project.update_or_create(
                 {"clockify_id": project["clockify_id"]},
                 {
-                    "client_id": clients_dict[project["client_id"]]["id"],
+                    "category_id": categories_dict[project["category_id"]]["id"] if project["category_id"] != '' else '',
                     "name": project["name"],
                 },
             )
@@ -62,7 +62,7 @@ class Project(Model):
             {
                 "name": project["name"].lower(),
                 "clockify_id": project["id"],
-                "client_id": project["clientId"],
+                "category_id": project["clientId"],
             }
             for project in responses.json()
         ]
@@ -77,6 +77,6 @@ class Project(Model):
             projects_map[project.clockify_id] = {
                 "id": project.id,
                 "name": project.name,
-                "client_id": project.client_id,
+                "category_id": project.category_id,
             }
         return projects_map

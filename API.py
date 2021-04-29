@@ -1,32 +1,18 @@
-"""
-colocar chave do perfil do PET e o id do workspace
-"""
-
-
-
-
 
 import requests
-import json
 import numpy
-import pandas as pd
 from pandas import json_normalize
-from orator import DatabaseManager
-import MySQLdb
+import json
+import datetime
+from orator import DatabaseManager, Model, Schema
+from models import *
 
-headers = {"content-type":"application/json","X-Api-Key":"XtlQUamKcGgmLvLD"} #parâmetros da requisição
-                                                                             #(esse X-Api-Key é do meu perfil)
-url = "https://api.clockify.me/api/v1/workspaces/5f68e99a69bb052125eda928/user/5ed53cc88092f06db0220ac9/time-entries" #url da base do clockify
+now = datetime.datetime.now()
+time_interval = now - datetime.timedelta(weeks=40)
 
 
-
-config = {
-    'mysql': {
-        'driver': 'mysql',
-        'host': '138.118.165.12',
-        'database': 'petma_clokify',
-        'user': 'petma_clockify',
-        'password': 'PET-MAmadruGa!10',
-        'prefix': ''
-    }
-}
+Member.save_from_clockify()
+Category.save_from_clockify()
+Project.save_from_clockify()
+Activity.save_from_clockify()
+TimeEntry.save_from_clockify(start=time_interval.strftime('%Y-%m-%dT%H:%M:%SZ'))

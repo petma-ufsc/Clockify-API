@@ -1,5 +1,6 @@
 from models import *
 from orator.orm import belongs_to
+import numpy as np
 import re
 import requests
 import pandas as pd
@@ -13,8 +14,8 @@ class TimeEntry(Model):
         "clockify_id",
         "member_id",
         "project_id",
-        #"activity_id",
-        "client_id",
+        "activity_id",
+        "category_id",
         "start",
         "end",
         "description",
@@ -35,9 +36,9 @@ class TimeEntry(Model):
     def activity(self):
         return Activity
 
-    @belongs_to("client_id", "id")
-    def client(self):
-        return Client
+    @belongs_to("category_id", "id")
+    def category(self):
+        return Category
 
     @staticmethod
     def check_to_long_time_entry(parameter_list):
@@ -75,6 +76,12 @@ class TimeEntry(Model):
                         "task.name",
                         "tags",
                     ]
+                    if "task.name" not in df_te:
+                        df_te["task.name"] = "none"
+                    if "task.id" not in df_te:
+                        df_te["task.id"] = -1
+
+                   
                     df_te = df_te[cols_to_keep]
                     df_te["member_id"] = member.id
                     df_te["task.name"] = df_te["task.name"].str.lower()
@@ -82,17 +89,16 @@ class TimeEntry(Model):
         return pd.concat(data, sort=False)
 
     @staticmethod
-    def add_activity_client_member_project_ids(time_entries):
+    def add_activity_category_member_project_ids(time_entries):
         activities_dict = Activity.map_all_activities()
         time_entries["activity_id"] = time_entries["task.name"].apply(
             lambda task_name: activities_dict.get(task_name, {}).get("id")
         )
-        clients_dict = Client.map_all_clients()
-        time_entries["client_id"] = time_entries["project.clientId"].apply(
-            lambda client_clockify_id: clients_dict.get(client_clockify_id, {}).get(
-                "id"
-            )
+        categories_dict = Category.map_all_categories()
+        time_entries["category_id"] = time_entries["project.clientId"].apply(
+            lambda category_clockify_id: categories_dict.get(category_clockify_id, {}).get("id")
         )
+
         members_dict = Member.map_all_members()
         time_entries["member_id"] = time_entries["userId"].apply(
             lambda member_clockify_id: members_dict.get(member_clockify_id, {}).get(
@@ -105,6 +111,10 @@ class TimeEntry(Model):
                 "id"
             )
         )
+        time_entries["activity_id"] = time_entries["activity_id"].fillna(-1)
+        time_entries["category_id"] = time_entries["category_id"].fillna(-1)
+        time_entries["project_id"] = time_entries["project_id"].fillna(-1)
+
         return time_entries
 
     @classmethod
@@ -113,6 +123,10 @@ class TimeEntry(Model):
         if not pd.isna(time_entry["timeInterval.end"]):
             clockify_id = time_entry["id"]
             member_id = time_entry["member_id"]
+            project_id = time_entry["project_id"]
+            activity_id = time_entry["activity_id"]
+            category_id = time_entry["category_id"]
+            """
             if not pd.isna(time_entry["project_id"]):
                 project_id = time_entry["project_id"]
             else:
@@ -124,11 +138,12 @@ class TimeEntry(Model):
                 print("No task in Time Entry {}".format(clockify_id))
                 # Send report to member
                 return
-            if not pd.isna(time_entry["client_id"]):
-                client_id = time_entry["client_id"]
+            if not pd.isna(time_entry["category_id"]):
+                category_id = time_entry["category_id"]
             else:
                 print("New Company, code needs to be updated")
                 return
+            """
             start = time_entry["timeInterval.start"]
             end = time_entry["timeInterval.end"]
             description = time_entry["description"]
@@ -138,7 +153,7 @@ class TimeEntry(Model):
                     "member_id": member_id,
                     "project_id": project_id,
                     "activity_id": activity_id,
-                    "client_id": client_id,
+                    "category_id": category_id,
                     "start": start,
                     "end": end,
                     "description": description,
@@ -152,7 +167,7 @@ class TimeEntry(Model):
         """Save all time entries from all members that started after the specified start
            datetime from clockify in the database"""
         time_entries = cls.fetch_all_time_entries(start)
-        time_entries = cls.add_activity_client_member_project_ids(time_entries)
+        time_entries = cls.add_activity_category_member_project_ids(time_entries)
         time_entries.apply(
             lambda time_entry: cls.process_time_entry(time_entry), axis=1
         )
